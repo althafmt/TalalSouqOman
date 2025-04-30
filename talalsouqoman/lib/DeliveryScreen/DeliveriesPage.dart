@@ -12,7 +12,7 @@ class _DeliveriesPageState extends State<DeliveriesPage> {
   final _supabase = Supabase.instance.client;
   bool _loading = true;
   List<Map<String, dynamic>> _deliveries = [];
-  bool _isAdmin = false;
+  bool _isAdminOrManager = false;
 
   // Form controllers
   final _routeController = TextEditingController();
@@ -112,8 +112,8 @@ class _DeliveriesPageState extends State<DeliveriesPage> {
           .single();
 
       setState(() {
-        _isAdmin = response['privilege'] == 'admin';
-        _loading = false;
+        _isAdminOrManager =
+            response['privilege'] == 'admin' || response['privilege'] == 'manager';
       });
     } catch (e) {
       setState(() => _loading = false);
@@ -243,7 +243,7 @@ class _DeliveriesPageState extends State<DeliveriesPage> {
           },
         ),
       ),
-      floatingActionButton: _isAdmin
+      floatingActionButton: _isAdminOrManager
           ? FloatingActionButton(
         onPressed: () => _showAddOptions(context),
         child: const Icon(Icons.add),
@@ -283,7 +283,7 @@ class _DeliveriesPageState extends State<DeliveriesPage> {
                       color: isCompleted ? Colors.black : Colors.orange,
                     ),
                   ),
-                  if (_isAdmin && !isCompleted)
+                  if (_isAdminOrManager && !isCompleted)
                     IconButton(
                       icon: const Icon(Icons.edit, size: 20),
                       onPressed: () => _showAddEndingDetailsDialog(context, delivery),

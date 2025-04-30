@@ -12,8 +12,8 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
 
-  bool _isLoading = true;
-  bool _isAdmin = false;
+  bool _loading = true;
+  bool _isAdminOrManager = false;
   List<Map<String, dynamic>> _employees = [];
 
   String _name = '';
@@ -29,13 +29,16 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUserPrivilege();
+    _checkAdminStatus();
     _fetchEmployees();
   }
 
-  Future<void> _fetchUserPrivilege() async {
+  Future<void> _checkAdminStatus() async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     try {
       final response = await _supabase
@@ -45,15 +48,16 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
           .single();
 
       setState(() {
-        _isAdmin = response['privilege'] == 'admin';
+        _isAdminOrManager =
+            response['privilege'] == 'admin' || response['privilege'] == 'manager';
       });
     } catch (e) {
-      _showSnackBar('Error fetching user privilege: $e');
+      setState(() => _loading = false);
     }
   }
 
   Future<void> _fetchEmployees() async {
-    setState(() => _isLoading = true);
+    setState(() => _loading = true);
     try {
       final response = await _supabase.from('employees').select();
       setState(() {
@@ -62,19 +66,19 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
     } catch (e) {
       _showSnackBar('Error fetching employees: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => _loading = false);
     }
   }
 
   Future<void> _addEmployee() async {
-    if (!_isAdmin) {
+    if (!_isAdminOrManager) {
       _showSnackBar('Only admins can add employees.');
       return;
     }
 
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() => _loading = true);
 
     try {
       String? photoUrl;
@@ -108,7 +112,7 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
     } catch (e) {
       _showSnackBar('Error adding employee: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => _loading = false);
     }
   }
 
@@ -143,7 +147,7 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
           ),
         ],
       ),
-      body: _isLoading
+      body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _employees.isEmpty
           ? const Center(child: Text("No employees found"))
@@ -158,7 +162,7 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
           );
         },
       ),
-      floatingActionButton: _isAdmin
+      floatingActionButton: _isAdminOrManager
           ? FloatingActionButton(
         onPressed: () => showDialog(
           context: context,
@@ -214,8 +218,8 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
                 _buildPhotoPicker(),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _addEmployee,
-                  child: _isLoading
+                  onPressed: _loading ? null : _addEmployee,
+                  child: _loading
                       ? const CircularProgressIndicator()
                       : const Text('Add Employee'),
                 ),

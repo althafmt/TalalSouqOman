@@ -22,34 +22,33 @@ class _WageCalculatorPageState extends State<WageCalculatorPage> {
   double _wagePerHour = 1.0;
   double _totalAmount = 0.0;
 
-  bool _isAdmin = false;
+  bool _isAdminOrManager = false;
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _checkAdminStatus();
+    _fetchUserPrivilege();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _fetchUserPrivilege() async {
     final user = _supabase.auth.currentUser;
-    if (user == null) {
+    if (user == null) return;
+
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('privilege')
+          .eq('userid', user.id)
+          .single();
+
       setState(() {
-        _loading = false;
+        _isAdminOrManager =
+            response['privilege'] == 'admin' || response['privilege'] == 'manager';
       });
-      return;
+    } catch (e) {
+      _showSnackBar('Error fetching user privilege: $e');
     }
-
-    final result = await _supabase
-        .from('users')
-        .select('privilege')
-        .eq('userid', user.id)
-        .single();
-
-    setState(() {
-      _isAdmin = result['privilege'] == 'admin';
-      _loading = false;
-    });
   }
 
   String getWorkedHours() {
@@ -66,7 +65,7 @@ class _WageCalculatorPageState extends State<WageCalculatorPage> {
   }
 
   Future<void> _submitWage() async {
-    if (!_isAdmin) return;
+    if (!_isAdminOrManager) return;
 
     if (_selectedDate == null || _startTime == null || _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +112,7 @@ class _WageCalculatorPageState extends State<WageCalculatorPage> {
       );
     }
 
-    if (!_isAdmin) {
+    if (!_isAdminOrManager) {
       return Scaffold(
         appBar: AppBar(title: const Text("Access Denied")),
         body: const Center(child: Text("Only Admin can access this page.")),
@@ -206,4 +205,8 @@ class _WageCalculatorPageState extends State<WageCalculatorPage> {
       ),
     );
   }
+}
+
+class _showSnackBar {
+  _showSnackBar(String s);
 }

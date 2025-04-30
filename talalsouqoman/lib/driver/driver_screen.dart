@@ -13,7 +13,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = true;
-  bool _isAdmin = false;
+  bool _isAdminOrManager = false;
   List<Map<String, dynamic>> _drivers = [];
 
   String _driverName = '';
@@ -41,7 +41,8 @@ class _DriverHomePageState extends State<DriverHomePage> {
           .single();
 
       setState(() {
-        _isAdmin = response['privilege'] == 'admin';
+        _isAdminOrManager =
+            response['privilege'] == 'admin' || response['privilege'] == 'manager';
       });
     } catch (e) {
       _showSnackBar('Error fetching user privilege: $e');
@@ -63,7 +64,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   }
 
   Future<void> _addDriver() async {
-    if (!_isAdmin) {
+    if (!_isAdminOrManager) {
       _showSnackBar('Only admins can add drivers.');
       return;
     }
@@ -161,7 +162,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
         },
 
       ),
-      floatingActionButton: _isAdmin
+      floatingActionButton: _isAdminOrManager
           ? FloatingActionButton(
         onPressed: () => showDialog(context: context, builder: (context) => _buildAddDriverDialog()),
         child: const Icon(Icons.add),

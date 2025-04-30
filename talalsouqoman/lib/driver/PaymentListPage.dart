@@ -14,28 +14,33 @@ class PaymentListPage extends StatefulWidget {
 class _PaymentListPageState extends State<PaymentListPage> {
   final _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _wageRecords = [];
-  bool _isAdmin = false;
+  bool _isAdminOrManager = false;
 
   @override
   void initState() {
     super.initState();
     _fetchWages();
-    _checkAdminStatus();
+    _fetchUserPrivilege();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _fetchUserPrivilege() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
-    final result = await _supabase
-        .from('users')
-        .select('privilege')
-        .eq('userid', user.id)
-        .single();
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('privilege')
+          .eq('userid', user.id)
+          .single();
 
-    setState(() {
-      _isAdmin = result['privilege'] == 'admin';
-    });
+      setState(() {
+        _isAdminOrManager =
+            response['privilege'] == 'admin' || response['privilege'] == 'manager';
+      });
+    } catch (e) {
+      _showSnackBar('Error fetching user privilege: $e');
+    }
   }
 
   Future<void> _fetchWages() async {
@@ -78,7 +83,7 @@ class _PaymentListPageState extends State<PaymentListPage> {
                   Row(
                     children: [
                       const Text("Status: "),
-                      _isAdmin
+                      _isAdminOrManager
                           ? DropdownButton<String>(
                         value: record['payment_status'],
                         onChanged: (val) => _updatePaymentStatus(record['id'], val!),
@@ -98,4 +103,8 @@ class _PaymentListPageState extends State<PaymentListPage> {
       ),
     );
   }
+}
+
+class _showSnackBar {
+  _showSnackBar(String s);
 }

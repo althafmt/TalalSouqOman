@@ -13,7 +13,7 @@ class _VisaEmployeesScreenState extends State<VisaEmployeesScreen> {
   final ImagePicker _picker = ImagePicker();
 
   bool _isLoading = true;
-  bool _isAdmin = false;
+  bool _isAdminOrManager = false;
   List<Map<String, dynamic>> _employees = [];
 
   String _name = '';
@@ -45,7 +45,8 @@ class _VisaEmployeesScreenState extends State<VisaEmployeesScreen> {
           .single();
 
       setState(() {
-        _isAdmin = response['privilege'] == 'admin';
+        _isAdminOrManager =
+            response['privilege'] == 'admin' || response['privilege'] == 'manager';
       });
     } catch (e) {
       _showSnackBar('Error fetching user privilege: $e');
@@ -70,7 +71,7 @@ class _VisaEmployeesScreenState extends State<VisaEmployeesScreen> {
   }
 
   Future<void> _addEmployee() async {
-    if (!_isAdmin) {
+    if (!_isAdminOrManager) {
       _showSnackBar('Only admins can add employees.');
       return;
     }
@@ -161,7 +162,7 @@ class _VisaEmployeesScreenState extends State<VisaEmployeesScreen> {
           );
         },
       ),
-      floatingActionButton: _isAdmin
+      floatingActionButton: _isAdminOrManager
           ? FloatingActionButton(
         onPressed: () => showDialog(
           context: context,
